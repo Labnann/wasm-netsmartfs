@@ -96,7 +96,6 @@ def clean_env():
   safe_env = os.environ.copy()
   for opt in ['CPATH', 'C_INCLUDE_PATH', 'CPLUS_INCLUDE_PATH', 'OBJC_INCLUDE_PATH',
               'CFLAGS', 'CXXFLAGS', 'LDFLAGS',
-              'EMCC_CFLAGS',
               'EMCC_AUTODEBUG',
               'EMCC_FORCE_STDLIBS',
               'EMCC_ONLY_FORCED_STDLIBS',

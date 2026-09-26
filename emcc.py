@@ -301,7 +301,8 @@ def main(args):
   # Additional compiler flags that we treat as if they were passed to us on the
   # commandline
   if EMCC_CFLAGS := os.environ.get('EMCC_CFLAGS'):
-    args += shlex.split(EMCC_CFLAGS)
+     if not any(arg.endswith(('.s', '.S')) for arg in args):
+       args += shlex.split(EMCC_CFLAGS)
 
   if DEBUG:
     logger.warning(f'invocation: {shlex.join(args)} (in {os.getcwd()})')

@@ -53,6 +53,7 @@ void Directory::Handle::cacheChild(const std::string& name,
 
 std::shared_ptr<File> Directory::Handle::getChild(const std::string& name) {
   // Unlinked directories must be empty, without even "." or ".."
+  printf("child? %s\n", name.c_str());
   if (!getParent()) {
     return nullptr;
   }
@@ -71,6 +72,7 @@ std::shared_ptr<File> Directory::Handle::getChild(const std::string& name) {
   // know about.
   auto child = getDir()->getChild(name);
   if (!child) {
+    printf("The reason? getdir getchild failure %s\n", name.c_str());
     return nullptr;
   }
   cacheChild(name, child, DCacheKind::Normal);

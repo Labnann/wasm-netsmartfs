@@ -8,6 +8,7 @@ addToLibrary({
   $FETCHFS__deps: ['$stringToUTF8OnStack', 'wasmfs_create_fetch_backend'],
   $FETCHFS: {
     createBackend(opts) {
+      console.log("Creating fetch backend with", opts);
       return withStackSave(
         () => _wasmfs_create_fetch_backend(
           stringToUTF8OnStack(opts.base_url ?? ''),

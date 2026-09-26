@@ -81,6 +81,7 @@ public:
   }
 
   std::shared_ptr<File> getChild(const std::string& name) override {
+    printf("getchild, fetch backend: %s\n", name.c_str());
     return MemoryDirectory::getChild(name);
   }
 };
