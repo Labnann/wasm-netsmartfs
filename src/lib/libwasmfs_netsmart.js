@@ -12,15 +12,15 @@ addToLibrary({
   _wasmfs_create_netsmart_backend_js__deps: [
     '$wasmFS$backends',
     '$wasmFS$JSMemoryRanges',
-    '_wasmfs_fetch_get_file_url',
-    '_wasmfs_fetch_get_chunk_size',
+    '_wasmfs_netsmart_get_file_url',
+    '_wasmfs_netsmart_get_chunk_size',
   ],
   _wasmfs_create_netsmart_backend_js: async function(backend) {
     // Get a promise that fetches the data and stores it in JS memory (if it has
     // not already been fetched).
     async function getFileRange(file, offset, len) {
       var url = '';
-      var fileUrl_p = __wasmfs_fetch_get_file_url(file);
+      var fileUrl_p = __wasmfs_netsmart_get_file_url(file);
       var fileUrl = UTF8ToString(fileUrl_p);
       var isAbs = fileUrl.indexOf('://') !== -1;
       if (isAbs) {
@@ -33,7 +33,7 @@ addToLibrary({
           throw {status: 404};
         }
       }
-      var chunkSize = __wasmfs_fetch_get_chunk_size(file);
+      var chunkSize = __wasmfs_netsmart_get_chunk_size(file);
       offset ??= 0;
       len ??= chunkSize;
       // In which chunk does the seeked range start?  E.g., 5-14 with chunksize 8 will start in chunk 0.
