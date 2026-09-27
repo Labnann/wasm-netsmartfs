@@ -67,6 +67,9 @@ addToLibrary({
 #if LibraryManager.has('libfetchfs.js')
     '$FETCHFS',
 #endif
+#if LibraryManager.has('libnetsmartfs.js')
+    '$NETSMARTFS',
+#endif
     'malloc',
     'free',
     'wasmfs_create_jsimpl_backend',

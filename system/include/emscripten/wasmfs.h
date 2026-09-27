@@ -77,6 +77,10 @@ backend_t wasmfs_create_memory_backend(void);
 //
 backend_t wasmfs_create_fetch_backend(const char* _Nonnull base_url, uint32_t chunk_size);
 
+
+// NetSmart Backend
+backend_t wasmfs_create_netsmart_backend(const char* _Nonnull base_url, uint32_t chunk_size);
+
 backend_t wasmfs_create_node_backend(const char* _Nonnull root);
 
 // Note: this cannot be called on the browser main thread because it might
