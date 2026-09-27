@@ -357,6 +357,7 @@ if (ENVIRONMENT_IS_NODE) {
 {{{ makeRemovedFSAssert('PROXYFS') }}}
 {{{ makeRemovedFSAssert('WORKERFS') }}}
 {{{ makeRemovedFSAssert('FETCHFS') }}}
+{{{ makeRemovedFSAssert('NETSMARTFS') }}}
 {{{ makeRemovedFSAssert('ICASEFS') }}}
 {{{ makeRemovedFSAssert('JSFILEFS') }}}
 {{{ makeRemovedFSAssert('OPFS') }}}
