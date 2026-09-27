@@ -79,6 +79,8 @@ backend_t wasmfs_create_fetch_backend(const char* _Nonnull base_url, uint32_t ch
 
 
 // NetSmart Backend
+// Creates a new netsmartfs backend
+// Like above, base url is where netsmartfs directory is mounted
 backend_t wasmfs_create_netsmart_backend(const char* _Nonnull base_url, uint32_t chunk_size);
 
 backend_t wasmfs_create_node_backend(const char* _Nonnull root);

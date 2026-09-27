@@ -108,6 +108,7 @@ function calculateLibraries() {
         'libwasmfs_js_file.js',
         'libwasmfs_jsimpl.js',
         'libwasmfs_fetch.js',
+        'libwasmfs_netsmart.js',
         'libwasmfs_node.js',
         'libwasmfs_opfs.js',
       );

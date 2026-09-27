@@ -2061,6 +2061,7 @@ class libwasmfs(DebugLibrary, AsanInstrumentedLibrary, MTLibrary):
     backends = files_in_path(
         path='system/lib/wasmfs/backends',
         filenames=['fetch_backend.cpp',
+                   'netsmart_backend.cpp',
                    'ignore_case_backend.cpp',
                    'js_file_backend.cpp',
                    'memory_backend.cpp',
