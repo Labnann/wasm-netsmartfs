@@ -1716,6 +1716,7 @@ native_sigs = {
   'warnx': '_pp',
   'wasmfs_create_directory': '_p_p',
   'wasmfs_create_fetch_backend': 'pp_',
+  'wasmfs_create_netsmart_backend': 'pp_',
   'wasmfs_create_file': '_p_p',
   'wasmfs_create_icase_backend': 'pp',
   'wasmfs_create_js_file_backend': 'p',

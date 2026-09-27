@@ -5,7 +5,7 @@
 
 // This file defines the fetch backend.
 
-#include "fetch_backend.h"
+#include "netsmart_backend.h"
 #include "backend.h"
 #include "proxied_async_js_impl_backend.h"
 #include "wasmfs.h"
@@ -106,7 +106,7 @@ uint32_t NetSmartBackend::getChunkSize() {
 }
 
 extern "C" {
-  backend_t wasmfs_create_fetch_backend(const char* base_url, uint32_t chunkSize) {
+  backend_t wasmfs_create_netsmart_backend(const char* base_url, uint32_t chunkSize) {
   // ProxyWorker cannot safely be synchronously spawned from the main browser
   // thread. See comment in thread_utils.h for more details.
   assert(!emscripten_is_main_browser_thread() &&
@@ -114,7 +114,7 @@ extern "C" {
   return wasmFS.addBackend(std::make_unique<NetSmartBackend>(
     base_url ? base_url : "",
     chunkSize ? chunkSize : DEFAULT_CHUNK_SIZE,
-    [](backend_t backend) { _wasmfs_create_fetch_backend_js(backend); }));
+    [](backend_t backend) { _wasmfs_create_netsmart_backend_js(backend); }));
   }
 
 const char* _wasmfs_fetch_get_file_url(void* ptr) {

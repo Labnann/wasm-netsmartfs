@@ -400,6 +400,7 @@ sigs = {
   _tzset_js__sig: 'vpppp',
   _wasmfs_copy_preloaded_file_data__sig: 'vip',
   _wasmfs_create_fetch_backend_js__sig: 'vp',
+  _wasmfs_create_netsmart_backend_js__sig: 'vp',
   _wasmfs_create_js_file_backend_js__sig: 'vp',
   _wasmfs_get_num_preloaded_dirs__sig: 'i',
   _wasmfs_get_num_preloaded_files__sig: 'i',
