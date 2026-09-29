@@ -19,6 +19,7 @@ addToLibrary({
     // Get a promise that fetches the data and stores it in JS memory (if it has
     // not already been fetched).
     async function getFileRange(file, offset, len) {
+      console.log("GET FILE RANGE", file);
       var url = '';
       var fileUrl_p = __wasmfs_netsmart_get_file_url(file);
       var fileUrl = UTF8ToString(fileUrl_p);
@@ -120,6 +121,7 @@ addToLibrary({
 
       // read/getSize fetch the data, then forward to the parent class.
       read: async (file, buffer, length, offset) => {
+        console.error("READ ACTIVITY");
         // This function assumes that offset is non-negative and length is positive.
         // C read() doesn't take an offset and so doesn't have to deal with the former situation,
         // and if the length is 0 or the offset is negative there's no reasonable read we can make.

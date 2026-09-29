@@ -430,10 +430,12 @@ static __wasi_fd_t doOpen(path::ParsedParent parsed,
                           backend_t backend = NullBackend,
                           OpenReturnMode returnMode = OpenReturnMode::FD) {
   int accessMode = (flags & O_ACCMODE);
+  printf("doOpen begin! 0\n");
   if (accessMode != O_WRONLY && accessMode != O_RDONLY &&
       accessMode != O_RDWR) {
     return -EINVAL;
   }
+  printf("doOpen begin! 1\n");
 
   // TODO: remove assert when all functionality is complete.
   assert((flags & ~(O_CREAT | O_EXCL | O_DIRECTORY | O_TRUNC | O_APPEND |
@@ -443,10 +445,12 @@ static __wasi_fd_t doOpen(path::ParsedParent parsed,
   if (auto err = parsed.getError()) {
     return err;
   }
+  printf("doOpen begin! 2\n");
   auto& [parent, childName] = parsed.getParentChild();
   if (childName.size() > WASMFS_NAME_MAX) {
     return -ENAMETOOLONG;
   }
+  printf("doOpen begin! 3\n");
 
   std::shared_ptr<File> child;
   {
@@ -457,7 +461,9 @@ static __wasi_fd_t doOpen(path::ParsedParent parsed,
       // If curr is the last element and the create flag is specified
       // If O_DIRECTORY is also specified, still create a regular file:
       // https://man7.org/linux/man-pages/man2/open.2.html#BUGS
+      printf("doOpen begin! child exists\n");
       if (!(flags & O_CREAT)) {
+        printf("doOpen begin! create missing O_CREATE?\n");
         return -ENOENT;
       }
 
@@ -472,13 +478,16 @@ static __wasi_fd_t doOpen(path::ParsedParent parsed,
 
       // If there is no explicitly provided backend, use the parent's backend.
       if (!backend) {
+        printf("USING PARENT's BACKEND!\n");
         backend = parent->getBackend();
       }
+      printf("ALREADY PROVIDED BACKEND BACKEND!\n");
 
       // TODO: Check write permissions on the parent directory.
       std::shared_ptr<File> created;
       if (backend == parent->getBackend()) {
         created = lockedParent.insertDataFile(std::string(childName), mode);
+        printf("file creation failed?: %d; <-- 1 means failed\n", !created);
         if (!created) {
           // TODO Receive a specific error code, and report it here. For now,
           //      report a generic error.
