@@ -18,8 +18,8 @@ addToLibrary({
   _wasmfs_create_netsmart_backend_js: async function(backend) {
     // Get a promise that fetches the data and stores it in JS memory (if it has
     // not already been fetched).
-    async function getFileRange(file, offset, len) {
-      console.log("GET FILE RANGE", file);
+    
+    function getFileUrl(file){
       var url = '';
       var fileUrl_p = __wasmfs_netsmart_get_file_url(file);
       var fileUrl = UTF8ToString(fileUrl_p);
@@ -34,6 +34,13 @@ addToLibrary({
           throw {status: 404};
         }
       }
+
+      return url;
+    }
+
+    async function getFileRange(file, offset, len) {
+      console.log("GET FILE RANGE", file);
+      var url = getFileUrl(file);
       var chunkSize = __wasmfs_netsmart_get_chunk_size(file);
       offset ??= 0;
       len ??= chunkSize;
@@ -106,6 +113,18 @@ addToLibrary({
       }
     }
 
+    let ws = null;
+    const ws_server_url = "ws://127.0.0.1:7007"
+
+    async function communicateFileSuggestion(){
+      ws = new WebSocket(ws_server_url);
+
+      ws.onopen = () => {
+        ws.send("Hello world, server connected\n");
+        console.log("server connected");
+      }
+    }
+
     wasmFS$backends[backend] = {
       // alloc/free operations are not actually async. Just forward to the
       // parent class, but we must return a Promise as the caller expects.
@@ -122,6 +141,7 @@ addToLibrary({
       // read/getSize fetch the data, then forward to the parent class.
       read: async (file, buffer, length, offset) => {
         console.error("READ ACTIVITY");
+        ws.send(UTF8ToString(file));
         // This function assumes that offset is non-negative and length is positive.
         // C read() doesn't take an offset and so doesn't have to deal with the former situation,
         // and if the length is 0 or the offset is negative there's no reasonable read we can make.
