@@ -653,12 +653,14 @@ doMkdir(path::ParsedParent parsed, mode_t mode, backend_t backend = NullBackend)
 
   if (backend == parent->getBackend()) {
     if (!lockedParent.insertDirectory(childName, mode)) {
+      printf("BACKEND DIR ISNERTION ATTEMPT FAILURE\n");
       // TODO Receive a specific error code, and report it here. For now, report
       //      a generic error.
       return -EIO;
     }
   } else {
     auto created = backend->createDirectory(mode);
+    printf("BACKEND DIR CREATED/ NOT INSERTED\n");
     if (!created) {
       // TODO Receive a specific error code, and report it here. For now, report
       //      a generic error.
