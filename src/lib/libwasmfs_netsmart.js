@@ -69,6 +69,7 @@ addToLibrary({
         chunkSize: wholeFileData.byteLength,
         accessOrder: 0
       };
+      allocated_size += wholeFileData.byteLength;
     }
     
     async function getFileRange(file, offset, len) {
@@ -91,6 +92,7 @@ addToLibrary({
             chunkSize: chunkSize,
             accessOrder = 0
           };
+          allocated_size += size;
           len = Math.min(len, size-offset);
         } else {
           // may as well/forced to download the whole file
@@ -132,7 +134,8 @@ addToLibrary({
 
     var read_count = 0;
     var files_info = {}
-    var MAX_FILES_SIZE_BYTE=1000000000
+    var MAX_FILES_SIZE_LIMIT=1000000000
+    var allocated_size = 0
     
 
     async function initiateCommunicateFileSuggestion(){
@@ -158,8 +161,21 @@ addToLibrary({
       };
     }
 
+    async function try_cleanup(){
+      if ((allocated_size/MAX_FILES_SIZE_LIMIT) < .9)
+        return;
+
+      $wasmFS$JSMemoryRanges.forEach((file, i)=>{
+        if ((file.accessOrder < (read_count/2)))
+          allocated_size -= file.size;
+          $wasmFS$JSMemoryRanges[file] = undefined
+      });
+
+    }
+
 
     async function netsmart_doOnReadOperation(file){
+      try_cleanup();
       ws.send(getFileUrl(file));
       $wasmFS$JSMemoryRanges[file].accessOrder = ++read_count
     }
