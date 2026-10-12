@@ -162,15 +162,21 @@ addToLibrary({
     }
 
     async function try_cleanup(){
-      if ((allocated_size/MAX_FILES_SIZE_LIMIT) < .9)
-        return;
+      var factor = .5
 
-      $wasmFS$JSMemoryRanges.forEach((file, i)=>{
-        if ((file.accessOrder < (read_count/2)))
-          allocated_size -= file.size;
-          $wasmFS$JSMemoryRanges[file] = undefined
-      });
+      while ( (factor < 1) && (allocated_size/MAX_FILES_SIZE_LIMIT) >= factor){
+        $wasmFS$JSMemoryRanges.forEach((file, i)=>{
+          if ( file && (file.accessOrder < (read_count*factor))){
+            allocated_size -= file.size;
+            $wasmFS$JSMemoryRanges[i] = undefined
+          }
+        });
 
+        factor += .1;
+      }
+
+      if (factor >= 1) 
+        console.error("Warning! Max Space Limit Reached");
     }
 
 
