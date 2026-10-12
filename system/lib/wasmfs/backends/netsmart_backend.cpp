@@ -17,6 +17,8 @@ const uint32_t DEFAULT_CHUNK_SIZE = 16*1024*1024;
 class NetSmartBackend : public wasmfs::ProxiedAsyncJSBackend {
   std::string baseUrl;
   uint32_t chunkSize;
+  std::map<std::string, uint32_t> urlToFile;
+
  public:
   NetSmartBackend(const std::string& baseUrl,
                uint32_t chunkSize,
@@ -26,6 +28,9 @@ class NetSmartBackend : public wasmfs::ProxiedAsyncJSBackend {
   std::shared_ptr<Directory> createDirectory(mode_t mode) override;
   const std::string getFileURL(const std::string& filePath);
   uint32_t getChunkSize();
+
+  void updateUrlToFile(const std::string& url, uint32_t file);
+  uint32_t getFileFromUrl(const std::string& url);
 };
 
 
@@ -33,7 +38,13 @@ class NetSmartFile : public ProxiedAsyncJSImplFile {
   std::string filePath;
   std::string fileUrl;
 
+
 public:
+  uint32_t getNetSmartFileIndex() {
+    static_assert(sizeof(this) == sizeof(uint32_t));
+    return uint32_t(this);
+  }
+
   NetSmartFile(const std::string& path,
             mode_t mode,
             backend_t backend,
@@ -62,9 +73,14 @@ public:
   std::shared_ptr<DataFile> insertDataFile(const std::string& name,
                                            mode_t mode) override {
     auto childPath = getChildPath(name);
+    auto backend = dynamic_cast<NetSmartBackend*>(getBackend());
     auto child =
-      std::make_shared<NetSmartFile>(childPath, mode, getBackend(), proxy);
+      std::make_shared<NetSmartFile>(childPath, mode, backend, proxy);
     printf("crf into dir: %s  name: %s \n", dirPath.c_str(), name.c_str());
+
+    auto url = backend->getFileURL(childPath);
+    backend->updateUrlToFile(url, child->getNetSmartFileIndex());
+
     insertChild(name, child);
     return child;
   }
@@ -108,6 +124,16 @@ uint32_t NetSmartBackend::getChunkSize() {
   return chunkSize;
 }
 
+void NetSmartBackend::updateUrlToFile(const std::string& url, uint32_t file) {
+  urlToFile[url] = file;
+}
+
+
+uint32_t NetSmartBackend::getFileFromUrl(const std::string& url) {
+  auto it = urlToFile.find(url);
+  return it != urlToFile.end() ? it->second : 0;
+}
+
 extern "C" {
   backend_t wasmfs_create_netsmart_backend(const char* base_url, uint32_t chunkSize) {
   // ProxyWorker cannot safely be synchronously spawned from the main browser
@@ -128,6 +154,11 @@ const char* _wasmfs_netsmart_get_file_url(void* ptr) {
 uint32_t _wasmfs_netsmart_get_chunk_size(void* ptr) {
   auto* file = reinterpret_cast<wasmfs::NetSmartFile*>(ptr);
   return file ? file->getChunkSize() : DEFAULT_CHUNK_SIZE;
+}
+
+uint32_t _wasmfs_netsmart_get_file_from_url(void* ptr, const char* url) {
+  auto* backend = reinterpret_cast<wasmfs::NetSmartBackend*>(ptr);
+  return backend ? backend->getFileFromUrl(url) : 0;
 }
 
 }

@@ -14,6 +14,7 @@ addToLibrary({
     '$wasmFS$JSMemoryRanges',
     '_wasmfs_netsmart_get_file_url',
     '_wasmfs_netsmart_get_chunk_size',
+    '_wasmfs_netsmart_get_file_from_url',
   ],
   _wasmfs_create_netsmart_backend_js: async function(backend) {
     // Get a promise that fetches the data and stores it in JS memory (if it has
@@ -38,6 +39,38 @@ addToLibrary({
       return url;
     }
 
+
+    async function fetchFileRangeIntoStorage(file, url, start, end, firstChunk, lastChunk) {
+      var response = await fetch(url, {headers:{'Range': `bytes=${start}-${end-1}`}});
+      if (!response.ok) {
+        throw response;
+      }
+    #if MIN_FIREFOX_VERSION < 128 || MIN_CHROME_VERSION < 132 || MIN_SAFARI_VERSION < 180000 || MIN_NODE_VERSION < 220300
+      // Use the old .arrayBuffer() method when targeting old environments.
+      var bytes = new Uint8Array(await response['arrayBuffer']());
+    #else
+      // Use the new .bytes() method to save a bit of code size when all target environments have it. https://developer.mozilla.org/en-US/docs/Web/API/Response/bytes
+      var bytes = await response['bytes']();
+    #endif
+      for (var i = firstChunk; i <= lastChunk; i++) {
+        wasmFS$JSMemoryRanges[file].chunks[i] = bytes.slice(i*wasmFS$JSMemoryRanges[file].chunkSize-start,(i+1)*wasmFS$JSMemoryRanges[file].chunkSize-start);
+      }
+    }
+    
+    async function fetchWholeFileIntoStorage(file, url) {
+      var wholeFileReq = await fetch(url);
+      if (!wholeFileReq.ok) {
+        throw wholeFileReq;
+      }
+      var wholeFileData = new Uint8Array(await wholeFileReq.arrayBuffer());
+      wasmFS$JSMemoryRanges[file] = {
+        size: wholeFileData.byteLength,
+        chunks: [wholeFileData],
+        chunkSize: wholeFileData.byteLength,
+        accessOrder: 0
+      };
+    }
+    
     async function getFileRange(file, offset, len) {
       console.log("GET FILE RANGE", file);
       var url = getFileUrl(file);
@@ -55,21 +88,13 @@ addToLibrary({
           wasmFS$JSMemoryRanges[file] = {
             size,
             chunks: [],
-            chunkSize: chunkSize
+            chunkSize: chunkSize,
+            accessOrder = 0
           };
           len = Math.min(len, size-offset);
         } else {
           // may as well/forced to download the whole file
-          var wholeFileReq = await fetch(url);
-          if (!wholeFileReq.ok) {
-            throw wholeFileReq;
-          }
-          var wholeFileData = new Uint8Array(await wholeFileReq.arrayBuffer());
-          wasmFS$JSMemoryRanges[file] = {
-            size: wholeFileData.byteLength,
-            chunks: [wholeFileData],
-            chunkSize: wholeFileData.byteLength
-          };
+          await fetchWholeFileIntoStorage(file, url);
           return;
         }
       }
@@ -97,38 +122,57 @@ addToLibrary({
       var start = firstChunk * chunkSize;
       // We must fetch *up to* the last byte of the last chunk.
       var end = (lastChunk+1) * chunkSize;
-      var response = await fetch(url, {headers:{'Range': `bytes=${start}-${end-1}`}});
-      if (!response.ok) {
-        throw response;
-      }
-#if MIN_FIREFOX_VERSION < 128 || MIN_CHROME_VERSION < 132 || MIN_SAFARI_VERSION < 180000 || MIN_NODE_VERSION < 220300
-      // Use the old .arrayBuffer() method when targeting old environments.
-      var bytes = new Uint8Array(await response['arrayBuffer']());
-#else
-      // Use the new .bytes() method to save a bit of code size when all target environments have it. https://developer.mozilla.org/en-US/docs/Web/API/Response/bytes
-      var bytes = await response['bytes']();
-#endif
-      for (i = firstChunk; i <= lastChunk; i++) {
-        wasmFS$JSMemoryRanges[file].chunks[i] = bytes.slice(i*chunkSize-start,(i+1)*chunkSize-start);
-      }
+    
+      await fetchFileRangeIntoStorage(file, url, start, end, firstChunk, lastChunk);
     }
 
-    let ws = null;
-    const ws_server_url = "ws://127.0.0.1:7007"
 
-    async function communicateFileSuggestion(){
+    var ws = null;
+    var ws_server_url = "ws://127.0.0.1:7007"
+
+    var read_count = 0;
+    var files_info = {}
+    var MAX_FILES_SIZE_BYTE=1000000000
+    
+
+    async function initiateCommunicateFileSuggestion(){
       ws = new WebSocket(ws_server_url);
 
       ws.onopen = () => {
         ws.send("Hello world, server connected\n");
         console.log("server connected");
       }
+
+
+      ws.onmessage = async (event) => {
+        var url = event.data.toString();
+        var file = __wasmfs_netsmart_get_file_from_url(backend, url);
+
+        if (file === undefined) {
+          console.log("no file for suggestion", url);
+          return;
+        }
+
+        console.log("prefetching suggestion", file, url);
+        await fetchWholeFileIntoStorage(file, url);
+      };
     }
+
+
+    async function netsmart_doOnReadOperation(file){
+      ws.send(getFileUrl(file));
+      $wasmFS$JSMemoryRanges[file].accessOrder = ++read_count
+    }
+
+    initiateCommunicateFileSuggestion();
+
 
     wasmFS$backends[backend] = {
       // alloc/free operations are not actually async. Just forward to the
       // parent class, but we must return a Promise as the caller expects.
-      allocFile: async (file) => { /* nop */ },
+      allocFile: async (file) => {
+        /* Nop */
+      },
       freeFile: async (file) => {
         // free memory
         wasmFS$JSMemoryRanges[file] = undefined;
@@ -141,7 +185,7 @@ addToLibrary({
       // read/getSize fetch the data, then forward to the parent class.
       read: async (file, buffer, length, offset) => {
         console.error("READ ACTIVITY");
-        ws.send(UTF8ToString(file));
+        netsmart_doOnReadOperation(file);
         // This function assumes that offset is non-negative and length is positive.
         // C read() doesn't take an offset and so doesn't have to deal with the former situation,
         // and if the length is 0 or the offset is negative there's no reasonable read we can make.
