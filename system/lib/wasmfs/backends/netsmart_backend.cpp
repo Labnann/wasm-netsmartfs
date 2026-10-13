@@ -9,6 +9,7 @@
 #include "backend.h"
 #include "proxied_async_js_impl_backend.h"
 #include "wasmfs.h"
+#include "manifest.h"
 
 namespace wasmfs {
 
@@ -17,15 +18,23 @@ const uint32_t DEFAULT_CHUNK_SIZE = 16*1024*1024;
 class NetSmartBackend : public wasmfs::ProxiedAsyncJSBackend {
   std::string baseUrl;
   uint32_t chunkSize;
+  Manifest manifest;
   std::map<std::string, uint32_t> urlToFile;
 
  public:
-  NetSmartBackend(const std::string& baseUrl,
-               uint32_t chunkSize,
-               std::function<void(backend_t)> setupOnThread)
-    : ProxiedAsyncJSBackend(setupOnThread), baseUrl(baseUrl), chunkSize(chunkSize) {}
+  NetSmartBackend(
+      const std::string& baseUrl,
+      uint32_t chunkSize,
+      std::function<void(backend_t)> setupOnThread)
+      : ProxiedAsyncJSBackend(setupOnThread),
+        baseUrl(baseUrl),
+        chunkSize(chunkSize),
+        manifest(baseUrl)
+  {}
+
   std::shared_ptr<DataFile> createFile(mode_t mode) override;
   std::shared_ptr<Directory> createDirectory(mode_t mode) override;
+
   const std::string getFileURL(const std::string& filePath);
   uint32_t getChunkSize();
 
