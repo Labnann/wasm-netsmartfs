@@ -15,6 +15,7 @@ addToLibrary({
     '_wasmfs_netsmart_get_file_url',
     '_wasmfs_netsmart_get_chunk_size',
     '_wasmfs_netsmart_get_file_from_url',
+    '_wasmfs_netsmart_get_suggestor_url',
   ],
   _wasmfs_create_netsmart_backend_js: async function(backend) {
     // Get a promise that fetches the data and stores it in JS memory (if it has
@@ -130,7 +131,8 @@ addToLibrary({
 
 
     var ws = null;
-    var ws_server_url = "ws://127.0.0.1:7007"
+    var ws_server_url = __wasmfs_netsmart_get_suggestor_url(backend);
+    //var ws_server_url = "ws://127.0.0.1:7007"
 
     var read_count = 0;
     var files_info = {}

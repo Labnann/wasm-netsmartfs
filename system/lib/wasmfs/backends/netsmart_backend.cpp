@@ -18,10 +18,10 @@ const uint32_t DEFAULT_CHUNK_SIZE = 16*1024*1024;
 class NetSmartBackend : public wasmfs::ProxiedAsyncJSBackend {
   std::string baseUrl;
   uint32_t chunkSize;
-  Manifest manifest;
   std::map<std::string, uint32_t> urlToFile;
 
  public:
+  Manifest manifest;
   NetSmartBackend(
       const std::string& baseUrl,
       uint32_t chunkSize,
@@ -168,6 +168,11 @@ uint32_t _wasmfs_netsmart_get_chunk_size(void* ptr) {
 uint32_t _wasmfs_netsmart_get_file_from_url(void* ptr, const char* url) {
   auto* backend = reinterpret_cast<wasmfs::NetSmartBackend*>(ptr);
   return backend ? backend->getFileFromUrl(url) : 0;
+}
+
+uint32_t _wasmfs_netsmart_get_suggestor_url(void* ptr) {
+  auto* backend = reinterpret_cast<wasmfs::NetSmartBackend*>(ptr);
+  return backend ? backend->manifest.getPrefetcherServer().c_str();
 }
 
 }
