@@ -161,11 +161,14 @@ addToLibrary({
       };
     }
 
-    async function try_cleanup(){
+    async function try_cleanup(file){
       var factor = .5
 
       while ( (factor < 1) && (allocated_size/MAX_FILES_SIZE_LIMIT) >= factor){
         $wasmFS$JSMemoryRanges.forEach((file, i)=>{
+          if (file == i)
+            return;
+
           if ( file && (file.accessOrder < (read_count*factor))){
             allocated_size -= file.size;
             $wasmFS$JSMemoryRanges[i] = undefined
@@ -181,7 +184,7 @@ addToLibrary({
 
 
     async function netsmart_doOnReadOperation(file){
-      try_cleanup();
+      try_cleanup(file);
       ws.send(getFileUrl(file));
       $wasmFS$JSMemoryRanges[file].accessOrder = ++read_count
     }
