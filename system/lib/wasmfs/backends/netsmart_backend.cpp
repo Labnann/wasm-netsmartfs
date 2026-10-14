@@ -108,10 +108,13 @@ public:
     return dirPath + '/' + name;
   }
 
-  std::shared_ptr<File> getChild(const std::string& name) override {
+std::shared_ptr<File> getChild(const std::string& name) override {
+    auto child = MemoryDirectory::getChild(name);
+    if (child)
+        return child;
+
     auto* backend = dynamic_cast<NetSmartBackend*>(getBackend());
     auto childPath = getChildPath(name);
-    printf("getchild, fullpath: %s \n", childPath.c_str());
 
     switch (backend->manifest.exists_file(childPath)) {
       case Manifest::DATA_FILE:
