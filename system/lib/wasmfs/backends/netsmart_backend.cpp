@@ -54,7 +54,7 @@ class NetSmartBackend : public wasmfs::ProxiedAsyncJSBackend {
   void updatePathToFileMap(const std::string& url, uint32_t file);
   uint32_t getFileFromPath(const std::string& url);
 
-  void createfile_and_add_to_pending_directory_updates(
+  uint32_t createfile_and_add_to_pending_directory_updates(
       const std::string& dirpath,
       const std::string& filename);
 
@@ -138,11 +138,17 @@ public:
   }
 
   std::shared_ptr<File> getChild(const std::string& name) override {
+      auto* backend = dynamic_cast<NetSmartBackend*>(getBackend());
+      // update any pending updates from backend to the directory
+      for (const auto& [file, filename] :
+          backend->consume_pending_directory_updates(dirPath)) {
+          insertDataFile(filename, 0777);
+      }
+
       auto child = MemoryDirectory::getChild(name);
       if (child)
           return child;
   
-      auto* backend = dynamic_cast<NetSmartBackend*>(getBackend());
       auto childPath = getChildPath(name);
   
       switch (backend->manifest.exists_file(childPath)) {
@@ -157,12 +163,6 @@ public:
         case Manifest::NO:
           printf("childpath: getattempt: ENOFOUND %s\n", childPath.c_str());
           break;
-      }
-
-      // update any pending updates from backend to the directory
-      for (const auto& [file, filename] :
-          backend->consume_pending_directory_updates(dirPath)) {
-          insertDataFile(filename, 0777);
       }
 
       return MemoryDirectory::getChild(name);
@@ -238,7 +238,7 @@ uint32_t _wasmfs_netsmart_get_chunk_size(void* ptr) {
   return file ? file->getChunkSize() : DEFAULT_CHUNK_SIZE;
 }
 
-uint32_t _wasmfs_netsmart_get_file_from_dir(void* ptr, const char* path) {
+uint32_t _wasmfs_netsmart_get_file_from_path(void* ptr, const char* path) {
   auto* backend = reinterpret_cast<wasmfs::NetSmartBackend*>(ptr);
   uint32_t file = backend ? backend->getFileFromPath(path) : 0;
 

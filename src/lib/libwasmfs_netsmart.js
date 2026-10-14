@@ -14,7 +14,7 @@ addToLibrary({
     '$wasmFS$JSMemoryRanges',
     '_wasmfs_netsmart_get_file_url',
     '_wasmfs_netsmart_get_chunk_size',
-    '_wasmfs_netsmart_get_file_from_url',
+    '_wasmfs_netsmart_get_file_from_path',
     '_wasmfs_netsmart_get_suggestor_url',
   ],
   _wasmfs_create_netsmart_backend_js: async function(backend) {
@@ -151,7 +151,7 @@ addToLibrary({
 
       ws.onmessage = async (event) => {
         var url = event.data.toString();
-        var file = __wasmfs_netsmart_get_file_from_url(backend, url);
+        var file = __wasmfs_netsmart_get_file_from_path(backend, url);
 
         if (file === undefined) {
           console.log("no file for suggestion", url);
