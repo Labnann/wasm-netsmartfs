@@ -159,6 +159,12 @@ public:
           break;
       }
 
+      // update any pending updates from backend to the directory
+      for (const auto& [file, filename] :
+          backend->consume_pending_directory_updates(dirPath)) {
+          insertDataFile(filename, 0777);
+      }
+
       return MemoryDirectory::getChild(name);
   }
 };
