@@ -91,7 +91,7 @@ addToLibrary({
             size,
             chunks: [],
             chunkSize: chunkSize,
-            accessOrder = 0
+            accessOrder : 0
           };
           allocated_size += size;
           len = Math.min(len, size-offset);

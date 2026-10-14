@@ -10,6 +10,7 @@
 #include "proxied_async_js_impl_backend.h"
 #include "wasmfs.h"
 #include "manifest.h"
+#include <cstdio>
 
 namespace wasmfs {
 
@@ -108,27 +109,28 @@ public:
     return dirPath + '/' + name;
   }
 
-std::shared_ptr<File> getChild(const std::string& name) override {
-    auto child = MemoryDirectory::getChild(name);
-    if (child)
-        return child;
-
-    auto* backend = dynamic_cast<NetSmartBackend*>(getBackend());
-    auto childPath = getChildPath(name);
-
-    switch (backend->manifest.exists_file(childPath)) {
-      case Manifest::DATA_FILE:
-        insertDataFile(name, 0777);
-        break;
-      case Manifest::DIRECTORY_FILE:
-        insertDirectory(name, 0777);
-        break;
-      case Manifest::NO:
-        break;
-    }
-
-    return MemoryDirectory::getChild(name);
-}
+  std::shared_ptr<File> getChild(const std::string& name) override {
+      auto child = MemoryDirectory::getChild(name);
+      if (child)
+          return child;
+  
+      auto* backend = dynamic_cast<NetSmartBackend*>(getBackend());
+      auto childPath = getChildPath(name);
+  
+      switch (backend->manifest.exists_file(childPath)) {
+        case Manifest::DATA_FILE:
+          insertDataFile(name, 0777);
+          break;
+        case Manifest::DIRECTORY_FILE:
+          insertDirectory(name, 0777);
+          break;
+        case Manifest::NO:
+          break;
+      }
+  
+      return MemoryDirectory::getChild(name);
+  }
+};
 
 std::shared_ptr<DataFile> NetSmartBackend::createFile(mode_t mode) {
   return std::make_shared<NetSmartFile>("", mode, this, proxy);
@@ -188,9 +190,13 @@ uint32_t _wasmfs_netsmart_get_file_from_url(void* ptr, const char* url) {
   return backend ? backend->getFileFromUrl(url) : 0;
 }
 
-uint32_t _wasmfs_netsmart_get_suggestor_url(void* ptr) {
+const char* _wasmfs_netsmart_get_suggestor_url(void* ptr) {
   auto* backend = reinterpret_cast<wasmfs::NetSmartBackend*>(ptr);
-  return backend ? backend->manifest.getPrefetcherServer().c_str();
+  if (!backend){
+    perror("FATAL: Backend not found.\n");
+    return nullptr;
+  }
+  return backend->manifest.getPrefetcherServer().c_str();
 }
 
 }

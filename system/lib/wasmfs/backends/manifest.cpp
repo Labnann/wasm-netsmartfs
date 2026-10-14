@@ -45,7 +45,7 @@ Manifest::Manifest(const std::string& baseUrl)
             std::fprintf(stderr, "Failed to parse MANIFEST: %d\n", result);
         }
     } else {
-        std::fprintf(stderr, "Failed to fetch MANIFEST: HTTP %ld\n",
+        std::fprintf(stderr, "Failed to fetch MANIFEST: HTTP %hu\n",
                      fetch->status);
     }
 
