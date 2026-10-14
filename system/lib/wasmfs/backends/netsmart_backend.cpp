@@ -109,10 +109,23 @@ public:
   }
 
   std::shared_ptr<File> getChild(const std::string& name) override {
-    printf("getchild, fetch backend: %s\n", name.c_str());
+    auto* backend = dynamic_cast<NetSmartBackend*>(getBackend());
+    auto childPath = getChildPath(name);
+    printf("getchild, fullpath: %s \n", childPath.c_str());
+
+    switch (backend->manifest.exists_file(childPath)) {
+      case Manifest::DATA_FILE:
+        insertDataFile(name, 0777);
+        break;
+      case Manifest::DIRECTORY_FILE:
+        insertDirectory(name, 0777);
+        break;
+      case Manifest::NO:
+        break;
+    }
+
     return MemoryDirectory::getChild(name);
-  }
-};
+}
 
 std::shared_ptr<DataFile> NetSmartBackend::createFile(mode_t mode) {
   return std::make_shared<NetSmartFile>("", mode, this, proxy);
