@@ -139,11 +139,13 @@ std::shared_ptr<Directory> NetSmartBackend::createDirectory(mode_t mode) {
 }
 
 const std::string NetSmartBackend::getFileURL(const std::string& filePath) {
-  if (filePath == "") {
-    return baseUrl;
-  }
-  return baseUrl + "/" + filePath;
+  auto it = manifest.getFiles().find(filePath);
+  if (it != manifest.getFiles().end())
+    return it->second;
+
+  return "";
 }
+
 
 uint32_t NetSmartBackend::getChunkSize() {
   return chunkSize;
