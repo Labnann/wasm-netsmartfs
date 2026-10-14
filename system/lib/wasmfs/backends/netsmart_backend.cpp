@@ -99,6 +99,7 @@ public:
 
 class NetSmartDirectory : public MemoryDirectory {
   std::string dirPath;
+  bool completed;
   emscripten::ProxyWorker& proxy;
 
 public:
@@ -137,36 +138,46 @@ public:
     return dirPath + '/' + name;
   }
 
+
   std::shared_ptr<File> getChild(const std::string& name) override {
-      auto* backend = dynamic_cast<NetSmartBackend*>(getBackend());
-      // update any pending updates from backend to the directory
-      for (const auto& [file, filename] :
-          backend->consume_pending_directory_updates(dirPath)) {
-          insertDataFile(filename, 0777);
-      }
-
-      auto child = MemoryDirectory::getChild(name);
-      if (child)
-          return child;
-  
-      auto childPath = getChildPath(name);
-  
-      switch (backend->manifest.exists_file(childPath)) {
-        case Manifest::DATA_FILE:
-          printf("childpath: getattempt: datafile %s\n", childPath.c_str());
-          insertDataFile(name, 0777);
-          break;
-        case Manifest::DIRECTORY_FILE:
-          printf("childpath: getattempt: directory %s\n", childPath.c_str());
-          insertDirectory(name, 0777);
-          break;
-        case Manifest::NO:
-          printf("childpath: getattempt: ENOFOUND %s\n", childPath.c_str());
-          break;
-      }
-
+    if (completed)
       return MemoryDirectory::getChild(name);
+
+    auto* backend = dynamic_cast<NetSmartBackend*>(getBackend());
+
+    for (const auto& [file, filename] :
+        backend->consume_pending_directory_updates(dirPath)) {
+      insertDataFile(filename, 0777);
+    }
+
+    std::string prefix = dirPath;
+    while (!prefix.empty() && prefix.front() == '/')
+      prefix.erase(prefix.begin());
+    if (!prefix.empty())
+      prefix += '/';
+
+    for (const auto& path : backend->manifest.getDirectories()) {
+      if (path.compare(0, prefix.size(), prefix) != 0)
+        continue;
+
+      std::string child = path.substr(prefix.size());
+      if (!child.empty() && child.find('/') == std::string::npos)
+        insertDirectory(child, 0777);
+    }
+
+    for (const auto& [path, url] : backend->manifest.getFiles()) {
+      if (path.compare(0, prefix.size(), prefix) != 0)
+        continue;
+
+      std::string child = path.substr(prefix.size());
+      if (!child.empty() && child.find('/') == std::string::npos)
+        insertDataFile(child, 0777);
+    }
+
+    completed = true;
+    return MemoryDirectory::getChild(name);
   }
+
 };
 
 std::shared_ptr<DataFile> NetSmartBackend::createFile(mode_t mode) {
