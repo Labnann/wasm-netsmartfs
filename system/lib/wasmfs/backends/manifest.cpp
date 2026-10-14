@@ -65,8 +65,25 @@ int Manifest::parseEntry(
             manifest->prefetcherServer = value;
         }
     } else if (std::strcmp(type, "directories") == 0) {
-        manifest->directories.emplace_back(key);
+        std::string path = key;
+
+        while (!path.empty() && path.front() == '/')
+            path.erase(path.begin());
+
+        while (!path.empty() && path.back() == '/')
+            path.pop_back();
+
+        manifest->directories.emplace_back(path);
+        manifest->directorySet.emplace(std::move(path));
     } else if (std::strcmp(type, "files") == 0) {
+        std::string path = key;
+
+        while (!path.empty() && path.front() == '/')
+            path.erase(path.begin());
+
+        while (!path.empty() && path.back() == '/')
+            path.pop_back();
+
         std::string url = value;
 
         if (url.empty()) {
@@ -78,10 +95,29 @@ int Manifest::parseEntry(
             url += key;
         }
 
-        manifest->files[key] = std::move(url);
+        manifest->files[std::move(path)] = std::move(url);
     }
 
     return 0;
+}
+
+Manifest::FileType Manifest::exists_file(const std::string& path) const
+{
+    std::size_t first = path.find_first_not_of('/');
+    if (first == std::string::npos)
+        return NO;
+
+    std::size_t last = path.find_last_not_of('/');
+
+    std::string normalized = path.substr(first, last - first + 1);
+
+    if (files.find(normalized) != files.end())
+        return DATA_FILE;
+
+    if (directorySet.find(normalized) != directorySet.end())
+        return DIRECTORY_FILE;
+
+    return NO;
 }
 
 const std::string& Manifest::getPrefetcherServer() const
@@ -98,4 +134,3 @@ const std::map<std::string, std::string>& Manifest::getFiles() const
 {
     return files;
 }
-

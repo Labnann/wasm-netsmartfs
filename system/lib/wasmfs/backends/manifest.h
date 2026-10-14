@@ -4,13 +4,23 @@
 
 #include <map>
 #include <string>
+#include <unordered_set>
 #include <vector>
 #include <emscripten/fetch.h>
 
 class Manifest {
+ public:
+  enum FileType {
+    NO,
+    DATA_FILE,
+    DIRECTORY_FILE
+  };
+
+ private:
   std::string baseUrl;
   std::string prefetcherServer;
   std::vector<std::string> directories;
+  std::unordered_set<std::string> directorySet;
   std::map<std::string, std::string> files;
 
   static int parseEntry(
@@ -25,10 +35,11 @@ class Manifest {
  public:
   explicit Manifest(const std::string& baseUrl);
 
+  FileType exists_file(const std::string& path) const;
+
   const std::string& getPrefetcherServer() const;
   const std::vector<std::string>& getDirectories() const;
   const std::map<std::string, std::string>& getFiles() const;
 };
 
 #endif
-
