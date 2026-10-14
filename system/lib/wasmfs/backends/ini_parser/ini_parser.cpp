@@ -20,7 +20,7 @@ static char *ini_trim(char *s)
 
 static int ini_parse_line(
     char *line,
-    char **type,
+    char *type,
     ini_callback callback,
     void *userdata)
 {
@@ -36,22 +36,24 @@ static int ini_parse_line(
             return -1;
 
         line[len - 1] = '\0';
-        *type = ini_trim(line + 1);
 
-        return 0;
+        char *section = ini_trim(line + 1);
+        memmove(line, section, strlen(section) + 1);
+
+        return 1;
     }
 
     char *eq = strchr(line, '=');
 
     if (!eq)
-        return callback(*type, line, "", userdata);
+        return callback(type, line, "", userdata);
 
     *eq = '\0';
 
     char *key = ini_trim(line);
     char *value = ini_trim(eq + 1);
 
-    return callback(*type, key, value, userdata);
+    return callback(type, key, value, userdata);
 }
 
 int ini_parse(
@@ -69,7 +71,15 @@ int ini_parse(
     if (!line)
         return -1;
 
-    char *type = (char *)"";
+    size_t type_capacity = 128;
+    char *type = (char *)malloc(type_capacity);
+    if (!type) {
+        free(line);
+        return -1;
+    }
+
+    type[0] = '\0';
+
     const char *p = input;
 
     while (*p) {
@@ -80,7 +90,6 @@ int ini_parse(
 
         size_t n = (size_t)(p - start);
 
-        /* Consume LF, CR, or CRLF. */
         if (*p == '\r') {
             p++;
             if (*p == '\n')
@@ -89,28 +98,22 @@ int ini_parse(
             p++;
         }
 
-        int has_newline = p > start + n;
-        int continuation = has_newline &&
-            n > 0 && start[n - 1] == '\\';
-
-        if (continuation)
-            n--;
-
         if (length + n + 1 > capacity) {
             size_t needed = length + n + 1;
             size_t new_capacity = capacity;
 
             while (new_capacity < needed) {
                 if (new_capacity > (size_t)-1 / 2) {
+                    free(type);
                     free(line);
                     return -1;
                 }
-
                 new_capacity *= 2;
             }
 
             char *tmp = (char *)realloc(line, new_capacity);
             if (!tmp) {
+                free(type);
                 free(line);
                 return -1;
             }
@@ -123,13 +126,44 @@ int ini_parse(
         length += n;
         line[length] = '\0';
 
-        if (continuation)
+        if (*p && length == 0)
             continue;
 
-        int result = ini_parse_line(
-            line, &type, callback, userdata);
+        if (p > start + n && length == 0)
+            continue;
 
-        if (result) {
+        int result = ini_parse_line(line, type, callback, userdata);
+
+        if (result == 1) {
+            char *section = ini_trim(line);
+            size_t section_length = strlen(section);
+
+            if (section_length + 1 > type_capacity) {
+                size_t new_capacity = type_capacity;
+
+                while (new_capacity < section_length + 1) {
+                    if (new_capacity > (size_t)-1 / 2) {
+                        free(type);
+                        free(line);
+                        return -1;
+                    }
+                    new_capacity *= 2;
+                }
+
+                char *tmp = (char *)realloc(type, new_capacity);
+                if (!tmp) {
+                    free(type);
+                    free(line);
+                    return -1;
+                }
+
+                type = tmp;
+                type_capacity = new_capacity;
+            }
+
+            memcpy(type, section, section_length + 1);
+        } else if (result != 0) {
+            free(type);
             free(line);
             return result;
         }
@@ -137,16 +171,7 @@ int ini_parse(
         length = 0;
     }
 
-    if (length) {
-        int result = ini_parse_line(
-            line, &type, callback, userdata);
-
-        if (result) {
-            free(line);
-            return result;
-        }
-    }
-
+    free(type);
     free(line);
     return 0;
 }
