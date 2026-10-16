@@ -13,6 +13,7 @@ addToLibrary({
     '$wasmFS$backends',
     '$wasmFS$JSMemoryRanges',
     '_wasmfs_netsmart_get_file_url',
+    '_wasmfs_netsmart_get_file_path',
     '_wasmfs_netsmart_get_chunk_size',
     '_wasmfs_netsmart_get_file_from_path',
     '_wasmfs_netsmart_get_suggestor_url',
@@ -40,7 +41,10 @@ addToLibrary({
       return url;
     }
 
-
+    function getFilePath(file){
+      var filePath_p = __wasmfs_netsmart_get_file_path(file);
+      return UTF8ToString(filePath_p);
+    }
     async function fetchFileRangeIntoStorage(file, url, start, end, firstChunk, lastChunk) {
       var response = await fetch(url, {headers:{'Range': `bytes=${start}-${end-1}`}});
       if (!response.ok) {

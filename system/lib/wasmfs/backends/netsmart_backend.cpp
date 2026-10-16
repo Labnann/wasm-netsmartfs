@@ -240,6 +240,12 @@ const char* _wasmfs_netsmart_get_file_url(void* ptr) {
   return file ? file->getURL().data() : nullptr;
 }
 
+const char* _wasmfs_netsmart_get_file_path(void* ptr) {
+  auto* file = reinterpret_cast<wasmfs::NetSmartFile*>(ptr);
+  return file->getPath();
+}
+
+
 uint32_t _wasmfs_netsmart_get_chunk_size(void* ptr) {
   auto* file = reinterpret_cast<wasmfs::NetSmartFile*>(ptr);
   return file ? file->getChunkSize() : DEFAULT_CHUNK_SIZE;
