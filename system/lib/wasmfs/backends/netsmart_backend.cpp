@@ -242,7 +242,7 @@ const char* _wasmfs_netsmart_get_file_url(void* ptr) {
 
 const char* _wasmfs_netsmart_get_file_path(void* ptr) {
   auto* file = reinterpret_cast<wasmfs::NetSmartFile*>(ptr);
-  return file->getPath();
+  return file->getPath().c_str();
 }
 
 

@@ -135,7 +135,7 @@ addToLibrary({
 
 
     var ws = null;
-    var ws_server_url = __wasmfs_netsmart_get_suggestor_url(backend);
+    var ws_server_url = UTF8ToString(__wasmfs_netsmart_get_suggestor_url(backend));
     //var ws_server_url = "ws://127.0.0.1:7007"
 
     var read_count = 0;
