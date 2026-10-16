@@ -25,7 +25,6 @@ Manifest::Manifest(const std::string& baseUrl)
         EMSCRIPTEN_FETCH_SYNCHRONOUS;
 
     emscripten_fetch_t* fetch = emscripten_fetch(&attr, url.c_str());
-    printf("MANIFEST: %s\n", url.c_str());
 
     if (!fetch) {
         std::fprintf(stderr, "Failed to fetch MANIFEST: %s\n",
@@ -85,7 +84,6 @@ int Manifest::parseEntry(
             path.pop_back();
 
         std::string url = value;
-        printf("backend: %s, for path: %s, url: %s: is empty?: %d\n", manifest->baseUrl.c_str(), path.c_str(), url.c_str(), url.empty());
 
         if (url.empty()) {
             url = manifest->baseUrl;

@@ -89,7 +89,6 @@ public:
             emscripten::ProxyWorker& proxy)
     : ProxiedAsyncJSImplFile(mode, backend, proxy), filePath(path) {
     this->fileUrl = dynamic_cast<NetSmartBackend*>(getBackend())->getFileURL(filePath);
-    printf("created path: %s, with url: %s\n", path.c_str(), this->fileUrl.c_str());
   }
 
   const std::string& getPath() const { return filePath; }
@@ -115,7 +114,6 @@ public:
     auto backend = dynamic_cast<NetSmartBackend*>(getBackend());
     auto child =
       std::make_shared<NetSmartFile>(childPath, mode, backend, proxy);
-    printf("crf into dir: %s  name: %s \n", dirPath.c_str(), name.c_str());
 
     auto url = backend->getFileURL(childPath);
     backend->updatePathToFileMap(url, child->getNetSmartFileIndex());
@@ -129,7 +127,6 @@ public:
     auto childPath = getChildPath(name);
     auto childDir =
       std::make_shared<NetSmartDirectory>(childPath, mode, getBackend(), proxy);
-    printf("crd into dir: %s  name: %s \n", dirPath.c_str(), name.c_str());
     insertChild(name, childDir);
     return childDir;
   }
@@ -208,7 +205,6 @@ const std::string NetSmartBackend::getFileURL(const std::string& filePath) {
   auto it = manifest.getFiles().find(path);
   std::string url = (it != manifest.getFiles().end()) ? it->second : "";
 
-  printf("path: %s, url: %s\n", filePath.c_str(), url.c_str());
   return url;
 }
 
