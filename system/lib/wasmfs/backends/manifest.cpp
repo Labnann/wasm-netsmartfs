@@ -62,6 +62,7 @@ int Manifest::parseEntry(
 
     if (std::strcmp(type, "prefetcher") == 0) {
         if (std::strcmp(key, "server") == 0) {
+            printf("manifest: server, key: %s, value: %s\n", key, value);
             manifest->prefetcherServer = value;
         }
     } else if (std::strcmp(type, "directories") == 0) {
@@ -121,6 +122,7 @@ Manifest::FileType Manifest::exists_file(const std::string& path) const
 
 const std::string& Manifest::getPrefetcherServer() const
 {
+    printf("manifest: prefetcher server %s\n", prefetcherServer.c_str());
     return prefetcherServer;
 }
 

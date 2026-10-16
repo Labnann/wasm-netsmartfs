@@ -163,6 +163,9 @@ addToLibrary({
         var file = __wasmfs_netsmart_get_file_from_path(backend, pathPtr);
         _free(pathPtr);
 
+        if ($wasmFS$JSMemoryRanges[file])
+          return;
+
         var url = getFileUrl(file);
 
         if (file === undefined) {

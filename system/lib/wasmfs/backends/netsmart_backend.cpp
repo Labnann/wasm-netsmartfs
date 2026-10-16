@@ -115,8 +115,7 @@ public:
     auto child =
       std::make_shared<NetSmartFile>(childPath, mode, backend, proxy);
 
-    auto url = backend->getFileURL(childPath);
-    backend->updatePathToFileMap(url, child->getNetSmartFileIndex());
+    backend->updatePathToFileMap(childPath, child->getNetSmartFileIndex());
 
     insertChild(name, child);
     return child;
@@ -213,14 +212,17 @@ uint32_t NetSmartBackend::getChunkSize() {
   return chunkSize;
 }
 
-void NetSmartBackend::updatePathToFileMap(const std::string& url, uint32_t file) {
-  pathToFileMap[url] = file;
+void NetSmartBackend::updatePathToFileMap(const std::string& path, uint32_t file) {
+  pathToFileMap[path] = file;
+  printf("netsmart_backend: update: %s, fd: %d\n", path.c_str(), file);
 }
 
 
-uint32_t NetSmartBackend::getFileFromPath(const std::string& url) {
-  auto it = pathToFileMap.find(url);
-  return it != pathToFileMap.end() ? it->second : 0;
+uint32_t NetSmartBackend::getFileFromPath(const std::string& path) {
+  auto it = pathToFileMap.find(path);
+  auto file =it != pathToFileMap.end() ? it->second : 0;
+  printf("netsmart_backend: search: %s, result: %d\n", path.c_str(), file);
+  return file;
 }
 
 extern "C" {
