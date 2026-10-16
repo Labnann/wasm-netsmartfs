@@ -135,7 +135,6 @@ addToLibrary({
 
 
     var ws = null;
-    var ws_server_url = UTF8ToString(__wasmfs_netsmart_get_suggestor_url(backend));
     //var ws_server_url = "ws://127.0.0.1:7007"
 
     var read_count = 0;
@@ -145,24 +144,33 @@ addToLibrary({
     
 
     async function initiateCommunicateFileSuggestion(){
+      var ws_server_url = UTF8ToString(__wasmfs_netsmart_get_suggestor_url(backend));
+      console.log("manifest: ", ws_server_url);
+
       ws = new WebSocket(ws_server_url);
 
       ws.onopen = () => {
-        ws.send("Hello world, server connected\n");
         console.log("server connected");
       }
 
 
       ws.onmessage = async (event) => {
-        var url = event.data.toString();
-        var file = __wasmfs_netsmart_get_file_from_path(backend, url);
+        var path = event.data.toString();
+
+        var pathLength = lengthBytesUTF8(path)+1;
+        const pathPtr = _malloc(pathLength);
+        stringToUTF8(path, pathPtr, pathLength);
+        var file = __wasmfs_netsmart_get_file_from_path(backend, pathPtr);
+        _free(pathPtr);
+
+        var url = getFileUrl(file);
 
         if (file === undefined) {
           console.log("no file for suggestion", url);
           return;
         }
 
-        console.log("prefetching suggestion", file, url);
+        console.log("libnetsmartfs: prefetching suggestion", file, path, url);
         await fetchWholeFileIntoStorage(file, url);
       };
     }
@@ -191,11 +199,12 @@ addToLibrary({
 
     async function netsmart_doOnReadOperation(file){
       try_cleanup(file);
-      ws.send(getFileUrl(file));
+      if (ws === null)
+        initiateCommunicateFileSuggestion();
+      ws.send(getFilePath(file));
       $wasmFS$JSMemoryRanges[file].accessOrder = ++read_count
     }
 
-    initiateCommunicateFileSuggestion();
 
 
     wasmFS$backends[backend] = {
