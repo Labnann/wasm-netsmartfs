@@ -61,6 +61,23 @@ addToLibrary({
         wasmFS$JSMemoryRanges[file].chunks[i] = bytes.slice(i*wasmFS$JSMemoryRanges[file].chunkSize-start,(i+1)*wasmFS$JSMemoryRanges[file].chunkSize-start);
       }
     }
+
+    var pendingWholeFileRequests = {};
+
+
+    function initiateWholeFileRequest(file, url) {
+      if (file in wasmFS$JSMemoryRanges ||
+        pendingWholeFileRequests[file]) {
+        return;
+      }
+
+      var request = fetchWholeFileIntoStorage(file, url);
+      pendingWholeFileRequests[file] = request;
+
+      request.finally(() => {
+        delete pendingWholeFileRequests[file];
+      }).catch(console.error);
+    }
     
     async function fetchWholeFileIntoStorage(file, url) {
       var wholeFileReq = await fetch(url);
@@ -174,7 +191,7 @@ addToLibrary({
         }
 
         console.log("libnetsmartfs: prefetching suggestion", file, path, url);
-        await fetchWholeFileIntoStorage(file, url);
+        initiateWholeFileRequest(file, url);
       };
     }
 
