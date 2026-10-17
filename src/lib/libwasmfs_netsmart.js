@@ -2,6 +2,8 @@
  * @license
  * Copyright 2022 The Emscripten Authors
  * SPDX-License-Identifier: MIT
+ * 
+ * @Copyright 2026 Khalid Masum
  */
 
 addToLibrary({
@@ -95,7 +97,7 @@ addToLibrary({
     }
     
     async function getFileRange(file, offset, len) {
-      console.log("GET FILE RANGE", file);
+//      console.log("GET FILE RANGE", file);
       var url = getFileUrl(file);
       var chunkSize = __wasmfs_netsmart_get_chunk_size(file);
       offset ??= 0;
@@ -180,7 +182,7 @@ addToLibrary({
         var file = __wasmfs_netsmart_get_file_from_path(backend, pathPtr);
         _free(pathPtr);
 
-        if ($wasmFS$JSMemoryRanges[file])
+        if (wasmFS$JSMemoryRanges[file])
           return;
 
         var url = getFileUrl(file);
@@ -195,26 +197,26 @@ addToLibrary({
       };
     }
 
-    async function try_cleanup(file){
-      var factor = .5
+    async function try_cleanup(file) {
+      var factor = .5;
 
-      while ( (factor < 1) && (allocated_size/MAX_FILES_SIZE_LIMIT) >= factor){
-        $wasmFS$JSMemoryRanges.forEach((file, i)=>{
-          if (file == i)
+      while ((factor < 1) && (allocated_size / MAX_FILES_SIZE_LIMIT) >= factor) {
+        Object.entries(wasmFS$JSMemoryRanges).forEach(([i, info]) => {
+          if (Number(i) === file)
             return;
 
-          if ( file && (file.accessOrder < (read_count*factor))){
-            allocated_size -= file.size;
-            $wasmFS$JSMemoryRanges[i] = undefined
+          if (info && info.accessOrder < read_count * factor) {
+            allocated_size -= info.size;
+            wasmFS$JSMemoryRanges[i] = undefined;
           }
         });
 
         factor += .1;
       }
 
-      if (factor >= 1) 
+      if (factor >= 1)
         console.error("Warning! Max Space Limit Reached");
-    }
+    } 
 
 
     async function netsmart_doOnReadOperation(file){
@@ -222,7 +224,7 @@ addToLibrary({
       if (ws === null)
         initiateCommunicateFileSuggestion();
       ws.send(getFilePath(file));
-      $wasmFS$JSMemoryRanges[file].accessOrder = ++read_count
+      wasmFS$JSMemoryRanges[file].accessOrder = ++read_count
     }
 
 
@@ -244,7 +246,6 @@ addToLibrary({
 
       // read/getSize fetch the data, then forward to the parent class.
       read: async (file, buffer, length, offset) => {
-        console.error("READ ACTIVITY");
         netsmart_doOnReadOperation(file);
         // This function assumes that offset is non-negative and length is positive.
         // C read() doesn't take an offset and so doesn't have to deal with the former situation,

@@ -214,14 +214,14 @@ uint32_t NetSmartBackend::getChunkSize() {
 
 void NetSmartBackend::updatePathToFileMap(const std::string& path, uint32_t file) {
   pathToFileMap[path] = file;
-  printf("netsmart_backend: update: %s, fd: %d\n", path.c_str(), file);
+  //printf("netsmart_backend: update: %s, fd: %d\n", path.c_str(), file);
 }
 
 
 uint32_t NetSmartBackend::getFileFromPath(const std::string& path) {
   auto it = pathToFileMap.find(path);
   auto file =it != pathToFileMap.end() ? it->second : 0;
-  printf("netsmart_backend: search: %s, result: %d\n", path.c_str(), file);
+  //printf("netsmart_backend: search: %s, result: %d\n", path.c_str(), file);
   return file;
 }
 
