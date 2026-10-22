@@ -20,12 +20,14 @@
 namespace wasmfs {
 
 const uint32_t DEFAULT_CHUNK_SIZE = 16*1024*1024;
+class NetSmartDirectory;
 
 
 class NetSmartBackend : public wasmfs::ProxiedAsyncJSBackend {
   std::string baseUrl;
   uint32_t chunkSize;
   std::map<std::string, uint32_t> pathToFileMap;
+  bool manifestPopulated = false;
 
   std::unordered_map<
       std::string,
@@ -47,6 +49,7 @@ class NetSmartBackend : public wasmfs::ProxiedAsyncJSBackend {
 
   std::shared_ptr<DataFile> createFile(mode_t mode) override;
   std::shared_ptr<Directory> createDirectory(mode_t mode) override;
+  void populateManifestOnce(NetSmartDirectory* root);
 
   const std::string getFileURL(const std::string& filePath);
   uint32_t getChunkSize();
@@ -98,7 +101,6 @@ public:
 
 class NetSmartDirectory : public MemoryDirectory {
   std::string dirPath;
-  bool completed;
   emscripten::ProxyWorker& proxy;
 
 public:
@@ -127,6 +129,7 @@ public:
     auto childDir =
       std::make_shared<NetSmartDirectory>(childPath, mode, getBackend(), proxy);
     insertChild(name, childDir);
+    printf("getchild: insertdir: finished: %s\n", childPath.c_str());
     return childDir;
   }
 
@@ -134,54 +137,92 @@ public:
     return dirPath + '/' + name;
   }
 
+  NetSmartDirectory* ensureDirectory(const std::string& path) {
+    NetSmartDirectory* current = this;
+    size_t start = 0;
+
+    while (start < path.size()) {
+      size_t end = path.find('/', start);
+      if (end == std::string::npos)
+        end = path.size();
+
+      std::string name = path.substr(start, end - start);
+      if (!name.empty()) {
+        auto child = current->MemoryDirectory::getChild(name);
+        auto dir = std::dynamic_pointer_cast<NetSmartDirectory>(child);
+
+        if (!dir) {
+          dir = std::dynamic_pointer_cast<NetSmartDirectory>(
+              current->insertDirectory(name, 0777));
+        }
+
+        current = dir.get();
+      }
+
+      start = end + 1;
+    }
+
+    return current;
+  }
+
+  void populateFromManifest() {
+    printf("populateFromManifest: dirPath='%s'\n", dirPath.c_str());
+    auto* backend = dynamic_cast<NetSmartBackend*>(getBackend());
+
+    for (const auto& path : backend->manifest.getDirectories()) {
+      std::string dir = path;
+      while (!dir.empty() && dir.back() == '/')
+        dir.pop_back();
+
+      ensureDirectory(dir);
+    }
+
+    for (const auto& [path, url] : backend->manifest.getFiles()) {
+      size_t pos = path.find_last_of('/');
+      std::string dir =
+          (pos == std::string::npos) ? "" : path.substr(0, pos);
+      std::string filename =
+          (pos == std::string::npos) ? path : path.substr(pos + 1);
+
+      if (!filename.empty())
+        ensureDirectory(dir)->insertDataFile(filename, 0777);
+    }
+  }
+
 
   std::shared_ptr<File> getChild(const std::string& name) override {
-    if (completed)
-      return MemoryDirectory::getChild(name);
-
+    printf("getChild: dirPath='%s', name='%s'\n",
+       dirPath.c_str(), name.c_str());
     auto* backend = dynamic_cast<NetSmartBackend*>(getBackend());
 
     for (const auto& [file, filename] :
         backend->consume_pending_directory_updates(dirPath)) {
       insertDataFile(filename, 0777);
     }
-
-    std::string prefix = dirPath;
-    while (!prefix.empty() && prefix.front() == '/')
-      prefix.erase(prefix.begin());
-    if (!prefix.empty())
-      prefix += '/';
-
-    for (const auto& path : backend->manifest.getDirectories()) {
-      if (path.compare(0, prefix.size(), prefix) != 0)
-        continue;
-
-      std::string child = path.substr(prefix.size());
-      if (!child.empty() && child.find('/') == std::string::npos)
-        insertDirectory(child, 0777);
-    }
-
-    for (const auto& [path, url] : backend->manifest.getFiles()) {
-      if (path.compare(0, prefix.size(), prefix) != 0)
-        continue;
-
-      std::string child = path.substr(prefix.size());
-      if (!child.empty() && child.find('/') == std::string::npos)
-        insertDataFile(child, 0777);
-    }
-
-    completed = true;
     return MemoryDirectory::getChild(name);
   }
 
 };
+
+void NetSmartBackend::populateManifestOnce(NetSmartDirectory* root) {
+  if (manifestPopulated)
+    return;
+
+  root->populateFromManifest();
+  manifestPopulated = true;
+}
+
 
 std::shared_ptr<DataFile> NetSmartBackend::createFile(mode_t mode) {
   return std::make_shared<NetSmartFile>("", mode, this, proxy);
 }
 
 std::shared_ptr<Directory> NetSmartBackend::createDirectory(mode_t mode) {
-  return std::make_shared<NetSmartDirectory>("", mode, this, proxy);
+  printf("creating rootdir, populated: %d\n", manifestPopulated);
+  auto root =
+      std::make_shared<NetSmartDirectory>("", mode, this, proxy);
+  populateManifestOnce(root.get());
+  return root;
 }
 
 
