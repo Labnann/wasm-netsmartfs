@@ -107,7 +107,7 @@ public:
     auto childDir =
       std::make_shared<NetSmartDirectory>(childPath, mode, getBackend(), proxy);
     insertChild(name, childDir);
-    printf("getchild: insertdir: finished: %s\n", childPath.c_str());
+   //printf("getchild: insertdir: finished: %s\n", childPath.c_str());
     return childDir;
   }
 
@@ -144,7 +144,7 @@ public:
   }
 
   void populateFromManifest() {
-    printf("populateFromManifest: dirPath='%s'\n", dirPath.c_str());
+   //printf("populateFromManifest: dirPath='%s'\n", dirPath.c_str());
     auto* backend = dynamic_cast<NetSmartBackend*>(getBackend());
 
     for (const auto& path : backend->manifest.getDirectories()) {
@@ -169,8 +169,7 @@ public:
 
 
   std::shared_ptr<File> getChild(const std::string& name) override {
-    printf("getChild: dirPath='%s', name='%s'\n",
-       dirPath.c_str(), name.c_str());
+   //printf("getChild: dirPath='%s', name='%s'\n", dirPath.c_str(), name.c_str());
     return MemoryDirectory::getChild(name);
   }
 
@@ -190,7 +189,7 @@ std::shared_ptr<DataFile> NetSmartBackend::createFile(mode_t mode) {
 }
 
 std::shared_ptr<Directory> NetSmartBackend::createDirectory(mode_t mode) {
-  printf("creating rootdir, populated: %d\n", manifestPopulated);
+ //printf("creating rootdir, populated: %d\n", manifestPopulated);
   auto root =
       std::make_shared<NetSmartDirectory>("", mode, this, proxy);
   populateManifestOnce(root.get());
