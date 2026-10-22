@@ -29,11 +29,6 @@ class NetSmartBackend : public wasmfs::ProxiedAsyncJSBackend {
   std::map<std::string, uint32_t> pathToFileMap;
   bool manifestPopulated = false;
 
-  std::unordered_map<
-      std::string,
-      std::vector<std::pair<uint32_t, std::string>>
-  > pending_directory_updates;
-
  public:
   Manifest manifest;
 
@@ -56,24 +51,7 @@ class NetSmartBackend : public wasmfs::ProxiedAsyncJSBackend {
 
   void updatePathToFileMap(const std::string& url, uint32_t file);
   uint32_t getFileFromPath(const std::string& url);
-
-  uint32_t createfile_and_add_to_pending_directory_updates(
-      const std::string& dirpath,
-      const std::string& filename);
-
-  std::vector<std::pair<uint32_t, std::string>>
-  consume_pending_directory_updates(const std::string& dirpath)
-  {
-    auto it = pending_directory_updates.find(dirpath);
-    if (it == pending_directory_updates.end())
-      return {};
-
-    auto updates = std::move(it->second);
-    pending_directory_updates.erase(it);
-    return updates;
-  }
-
-  };
+};
 
 class NetSmartFile : public ProxiedAsyncJSImplFile {
   std::string filePath;
@@ -193,12 +171,6 @@ public:
   std::shared_ptr<File> getChild(const std::string& name) override {
     printf("getChild: dirPath='%s', name='%s'\n",
        dirPath.c_str(), name.c_str());
-    auto* backend = dynamic_cast<NetSmartBackend*>(getBackend());
-
-    for (const auto& [file, filename] :
-        backend->consume_pending_directory_updates(dirPath)) {
-      insertDataFile(filename, 0777);
-    }
     return MemoryDirectory::getChild(name);
   }
 
@@ -225,16 +197,6 @@ std::shared_ptr<Directory> NetSmartBackend::createDirectory(mode_t mode) {
   return root;
 }
 
-
-uint32_t NetSmartBackend::createfile_and_add_to_pending_directory_updates(
-    const std::string& dirpath,
-    const std::string& filename)
-{
-  auto file = std::make_shared<NetSmartFile>(filename, 0777, this, proxy);
-  uint32_t id = reinterpret_cast<uintptr_t>(file.get());
-  pending_directory_updates[dirpath].emplace_back(id, filename);
-  return id;
-}
 
 const std::string NetSmartBackend::getFileURL(const std::string& filePath) {
   std::string path = filePath;
@@ -296,22 +258,7 @@ uint32_t _wasmfs_netsmart_get_chunk_size(void* ptr) {
 
 uint32_t _wasmfs_netsmart_get_file_from_path(void* ptr, const char* path) {
   auto* backend = reinterpret_cast<wasmfs::NetSmartBackend*>(ptr);
-  uint32_t file = backend ? backend->getFileFromPath(path) : 0;
-
-  if (!file && backend) {
-    std::string fullPath(path);
-    size_t pos = fullPath.find_last_of('/');
-
-    std::string dir = (pos == std::string::npos) ? "" : fullPath.substr(0, pos);
-    std::string filename = (pos == std::string::npos) ? fullPath : fullPath.substr(pos + 1);
-
-    if (backend->manifest.exists_file(path) == Manifest::DATA_FILE) {
-      file = backend->createfile_and_add_to_pending_directory_updates(
-          dir, filename);
-    }
-  }
-
-  return file;
+  return backend ? backend->getFileFromPath(path) : 0;
 }
 
 const char* _wasmfs_netsmart_get_suggestor_url(void* ptr) {
